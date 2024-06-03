@@ -2,6 +2,7 @@
 import logging
 
 from brotli_asgi import BrotliMiddleware
+from edr_pydantic.capabilities import ConformanceModel
 from edr_pydantic.capabilities import Contact
 from edr_pydantic.capabilities import LandingPageModel
 from edr_pydantic.capabilities import Provider
@@ -50,9 +51,29 @@ async def landing_page(request: Request) -> LandingPageModel:
             Link(href=f"{request.url}", rel="self", title="Landing Page in JSON"),
             Link(href=f"{request.url}docs", rel="service-desc", title="API description in HTML"),
             Link(href=f"{request.url}openapi.json", rel="service-desc", title="API description in JSON"),
-            # Link(href=f"{request.url}conformance", rel="data", title="Conformance Declaration in JSON"),
+            Link(href=f"{request.url}conformance", rel="data", title="Conformance Declaration in JSON"),
             Link(href=f"{request.url}collections", rel="data", title="Collections metadata in JSON"),
         ],
+    )
+
+
+@app.get(
+    "/conformance",
+    tags=["Capabilities"],
+    response_model=ConformanceModel,
+    response_model_exclude_none=True,
+)
+async def get_conformance(request: Request) -> ConformanceModel:
+    return ConformanceModel(
+        conformsTo=[
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/core",
+            "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core",
+            "http://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections",
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/oas30",
+            # "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/html",
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/edr-geojson",
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/covjson",
+        ]
     )
 
 
