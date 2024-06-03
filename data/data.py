@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
@@ -7,7 +8,7 @@ import pytz
 import xarray as xr
 
 # Load the data
-ds = xr.open_dataset("20230101.nc", engine="netcdf4", chunks=None)
+ds = xr.open_dataset(os.path.join(os.path.dirname(__file__), "20230101.nc"), engine="netcdf4", chunks=None)
 
 
 @dataclass
