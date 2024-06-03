@@ -2,9 +2,12 @@
 import logging
 
 from brotli_asgi import BrotliMiddleware
+from edr_pydantic.capabilities import Contact
 from edr_pydantic.capabilities import LandingPageModel
+from edr_pydantic.capabilities import Provider
 from edr_pydantic.collections import Collection
 from edr_pydantic.collections import Collections
+from edr_pydantic.link import Link
 from fastapi import FastAPI
 from fastapi import Request
 
@@ -35,7 +38,20 @@ app.add_middleware(BrotliMiddleware)
     response_model_exclude_none=True,
 )
 async def landing_page(request: Request) -> LandingPageModel:
-    pass
+    return LandingPageModel(
+        title="EDR tutorial",
+        description="A simple example EDR implementation",
+        keywords=["weather", "temperature", "wind", "humidity", "pressure", "clouds", "radiation"],
+        provider=Provider(name="RODEO", url="https://rodeo-project.eu/"),
+        contact=Contact(email="rodeoproject@fmi.fi"),
+        links=[
+            Link(href=f"{request.url}", rel="self", title="Landing Page in JSON"),
+            Link(href=f"{request.url}docs", rel="service-desc", title="API description in HTML"),
+            Link(href=f"{request.url}openapi.json", rel="service-desc", title="API description in JSON"),
+            # Link(href=f"{request.url}conformance", rel="data", title="Conformance Declaration in JSON"),
+            Link(href=f"{request.url}collections", rel="data", title="Collections metadata in JSON"),
+        ],
+    )
 
 
 @app.get(
