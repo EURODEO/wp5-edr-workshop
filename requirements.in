@@ -1,0 +1,18 @@
+# Generate requirements.txt using:
+# pip-compile --upgrade --no-emit-index-url
+# Install using:
+# pip-sync
+
+# Data mock
+netCDF4~=1.6
+xarray~=2024.5
+
+# API
+brotli-asgi~=1.4
+fastapi~=0.111.0
+gunicorn~=22.0
+uvicorn[standard]~=0.30.1
+covjson-pydantic~=0.3.0
+edr-pydantic~=0.3.0
+shapely~=2.0
+geojson-pydantic~=1.1
