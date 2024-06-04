@@ -13,6 +13,15 @@ def create_url_from_request(request):
     return f"{scheme}://{host}{base_path}/collections"
 
 
+def split_string_parameters_to_list(value: str | list[str]):
+    if not value:
+        return None
+    elif isinstance(value, str):
+        return list(map(str.strip, value.split(",")))
+    else:
+        return value
+
+
 def datetime_to_iso_string(value: datetime) -> str:
     """Returns the datetime as ISO 8601 string.
     Changes timezone +00:00 to the military time zone indicator (Z).

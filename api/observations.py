@@ -1,4 +1,3 @@
-from http.client import HTTPException
 from typing import Annotated
 
 from covjson_pydantic.coverage import Coverage
@@ -11,14 +10,17 @@ from covjson_pydantic.observed_property import ObservedProperty
 from covjson_pydantic.parameter import Parameter
 from covjson_pydantic.reference_system import ReferenceSystem
 from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
+from covjson_pydantic.unit import Unit
 from edr_pydantic.parameter import EdrBaseModel
 from fastapi import APIRouter
+from fastapi import HTTPException
 from fastapi import Path
 from fastapi import Query
 from geojson_pydantic import FeatureCollection
 from pydantic import AwareDatetime
 from starlette.responses import JSONResponse
 
+from api.util import split_string_parameters_to_list
 from data.data import get_data
 from data.data import get_station
 from data.data import get_variables
@@ -58,7 +60,16 @@ def get_parameters() -> dict[str, Parameter]:
 
     parameters = {}
     for var in variables:
-        parameters[var.id] = Parameter(id=var.id, observedProperty=ObservedProperty(label={"en": var.long_name}))
+        parameters[var.id] = Parameter(
+            id=var.id,
+            label={"en": var.id},
+            description={"en": var.long_name},
+            observedProperty=ObservedProperty(
+                id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
+                label={"en": var.standard_name},
+            ),
+            unit=Unit(label={"end": var.units}),
+        )
 
     return parameters
 
@@ -96,14 +107,40 @@ async def get_data_location_id(
     ] = None,
     datetime: Annotated[str | None, Query(example="2023-01-01T00:00Z/2023-01-02T00:00Z")] = None,
 ) -> Coverage:
+    # Location query parameter
     station = get_station(location_id)
-
     if not station:
         raise HTTPException(status_code=404, detail="Location not found")
 
-    data = get_data(location_id, parameter_name)
-    t_values = [t[0] for t in data]
-    r_values = [t[1] for t in data]
+    # Parameter_name query parameter
+    requested_parameters = split_string_parameters_to_list(parameter_name)
+    available_parameters = get_parameters()
+
+    if not parameter_name:
+        parameters = available_parameters
+    elif not set(requested_parameters).issubset(set(available_parameters.keys())):
+        unavailable_parameters = set(requested_parameters) - set(available_parameters.keys())
+        raise HTTPException(
+            status_code=422, detail=f"The following parameters are not available: {unavailable_parameters}"
+        )
+    else:
+        parameters: dict[str, Parameter] = {}
+        for p in requested_parameters:
+            parameters[p] = available_parameters[p]
+
+    # Get data
+    ranges = {}
+    t_values = []
+    for p in parameters:
+        data = get_data(location_id, p)
+        r_values = [t[1] for t in data]
+        t_values = [t[0] for t in data]
+
+        ranges[p] = NdArray(
+            axisNames=["t", "y", "x"],
+            shape=[len(r_values), 1, 1],
+            values=r_values,
+        )
 
     domain = Domain(
         domainType=DomainType.point_series,
@@ -114,14 +151,5 @@ async def get_data_location_id(
         ),
         referencing=get_reference_system(),
     )
-    parameters = get_parameters()
-
-    ranges = {
-        parameter_name: NdArray(
-            axisNames=["t", "y", "x"],
-            shape=[len(data), 1, 1],
-            values=r_values,
-        )
-    }
 
     return Coverage(domain=domain, parameters=parameters, ranges=ranges)
