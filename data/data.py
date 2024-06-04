@@ -75,7 +75,7 @@ def get_variable(id: str):
     return list(filter(lambda x: x.id == id, get_variables()))[0]
 
 
-def get_data(station: str, variable: str) -> list[tuple[datetime, float]]:
+def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]:
     var = ds.sel(station=station)[variable].fillna(None)
     data = []
     for time, obs_value in zip(

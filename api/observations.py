@@ -109,18 +109,18 @@ async def get_data_location_id(
         raise HTTPException(status_code=404, detail="Location not found")
 
     # Parameter_name query parameter
-    requested_parameters = split_string_parameters_to_list(parameter_name) if parameter_name else None
-    available_parameters = get_parameters()
+    parameters = get_parameters()
 
-    if not requested_parameters:
-        parameters = available_parameters
-    elif not set(requested_parameters).issubset(set(available_parameters.keys())):
-        unavailable_parameters = set(requested_parameters) - set(available_parameters.keys())
-        raise HTTPException(
-            status_code=400, detail=f"The following parameters are not available: {unavailable_parameters}"
-        )
-    else:
-        parameters: dict[str, Parameter] = {p: available_parameters[p] for p in requested_parameters}
+    if parameter_name:
+        requested_parameters = split_string_parameters_to_list(parameter_name)
+
+        if not set(requested_parameters).issubset(set(parameters.keys())):
+            unavailable_parameters = set(requested_parameters) - set(parameters.keys())
+            raise HTTPException(
+                status_code=400, detail=f"The following parameters are not available: {unavailable_parameters}"
+            )
+
+        parameters: dict[str, Parameter] = {p: parameters[p] for p in requested_parameters}
 
     # Datetime query parameter
     start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
