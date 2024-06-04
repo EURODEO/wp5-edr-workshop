@@ -2,13 +2,19 @@
 import logging
 
 from brotli_asgi import BrotliMiddleware
+from edr_pydantic.capabilities import ConformanceModel
+from edr_pydantic.capabilities import Contact
 from edr_pydantic.capabilities import LandingPageModel
+from edr_pydantic.capabilities import Provider
 from edr_pydantic.collections import Collection
 from edr_pydantic.collections import Collections
+from edr_pydantic.link import Link
 from fastapi import FastAPI
 from fastapi import Request
 
+from api import collection
 from api import observations
+from api.util import create_url_from_request
 
 
 def setup_logging():
@@ -35,7 +41,40 @@ app.add_middleware(BrotliMiddleware)
     response_model_exclude_none=True,
 )
 async def landing_page(request: Request) -> LandingPageModel:
-    pass
+    return LandingPageModel(
+        title="EDR tutorial",
+        description="A simple example EDR implementation",
+        keywords=["weather", "temperature", "wind", "humidity", "pressure", "clouds", "radiation"],
+        provider=Provider(name="RODEO", url="https://rodeo-project.eu/"),
+        contact=Contact(email="rodeoproject@fmi.fi"),
+        links=[
+            Link(href=f"{request.url}", rel="self", title="Landing Page in JSON"),
+            Link(href=f"{request.url}docs", rel="service-desc", title="API description in HTML"),
+            Link(href=f"{request.url}openapi.json", rel="service-desc", title="API description in JSON"),
+            Link(href=f"{request.url}conformance", rel="data", title="Conformance Declaration in JSON"),
+            Link(href=f"{request.url}collections", rel="data", title="Collections metadata in JSON"),
+        ],
+    )
+
+
+@app.get(
+    "/conformance",
+    tags=["Capabilities"],
+    response_model=ConformanceModel,
+    response_model_exclude_none=True,
+)
+async def get_conformance(request: Request) -> ConformanceModel:
+    return ConformanceModel(
+        conformsTo=[
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/core",
+            "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core",
+            "http://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections",
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/oas30",
+            # "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/html",
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/edr-geojson",
+            "http://www.opengis.net/spec/ogcapi-edr-1/1.1/conf/covjson",
+        ]
+    )
 
 
 @app.get(
@@ -45,7 +84,13 @@ async def landing_page(request: Request) -> LandingPageModel:
     response_model_exclude_none=True,
 )
 async def get_collections(request: Request) -> Collections:
-    pass
+    base_url = create_url_from_request(request)
+    return Collections(
+        links=[
+            Link(href=f"{base_url}", rel="self"),
+        ],
+        collections=[await collection.get_collection_metadata(base_url, is_self=False)],
+    )
 
 
 @app.get(
@@ -55,7 +100,8 @@ async def get_collections(request: Request) -> Collections:
     response_model_exclude_none=True,
 )
 async def get_collection_metadata(request: Request) -> Collection:
-    pass
+    base_url = create_url_from_request(request)
+    return await collection.get_collection_metadata(base_url, is_self=True)
 
 
 # Include other routes

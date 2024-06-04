@@ -8,7 +8,9 @@ import pytz
 import xarray as xr
 
 # Load the data
-ds = xr.open_dataset(os.path.join(os.path.dirname(__file__), "20230101.nc"), engine="netcdf4", chunks=None)
+dirname = os.path.dirname(__file__)
+filename = os.path.join(dirname, "20230101.nc")
+ds = xr.open_dataset(filename, engine="netcdf4", chunks=None)
 
 
 @dataclass
@@ -55,10 +57,13 @@ def get_variables():
         data_var = ds[p]
         if data_var.name in ["stationname", "lat", "lon", "height", "iso_dataset", "product", "projection"]:
             continue
+        if "standard_name" not in data_var.attrs:
+            # Don't handle these for now
+            continue
         variable = Variable(
             id=data_var.name,
             long_name=data_var.long_name,
-            standard_name=data_var.standard_name if "standard_name" in data_var.attrs else None,
+            standard_name=data_var.standard_name,
             units=data_var.units,
             comment=data_var.comment if "comment" in data_var.attrs else None,
         )
