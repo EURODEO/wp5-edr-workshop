@@ -17,6 +17,7 @@ from api import observations
 from api.util import create_url_from_request
 
 
+# TODO: Fix logging so it works in all files
 def setup_logging():
     logger = logging.getLogger()
     syslog = logging.StreamHandler()
