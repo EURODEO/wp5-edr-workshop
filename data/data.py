@@ -1,10 +1,10 @@
 import os
 from dataclasses import dataclass
 from datetime import datetime
+from datetime import timezone
 from functools import cache
 
 import pandas as pd
-import pytz
 import xarray as xr
 
 # Load the data
@@ -82,13 +82,14 @@ def get_data(station: str, variable: str) -> list[tuple[datetime, float]]:
         pd.to_datetime(var["time"].data).to_pydatetime(),
         var.data,
     ):
-        data.append((time.replace(tzinfo=pytz.UTC), float(obs_value)))
+        data.append((time.replace(tzinfo=timezone.utc), float(obs_value)))
     return data
 
 
+@cache
 def get_temporal_extent():
     times = pd.to_datetime(ds.time.data).to_pydatetime()
-    return min(times).replace(tzinfo=pytz.UTC), max(times).replace(tzinfo=pytz.UTC)
+    return min(times).replace(tzinfo=timezone.utc), max(times).replace(tzinfo=timezone.utc)
 
 
 if __name__ == "__main__":
