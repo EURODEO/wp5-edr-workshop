@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from covjson_pydantic.coverage import Coverage
@@ -16,6 +17,7 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Path
 from fastapi import Query
+from geojson_pydantic import Feature
 from geojson_pydantic import FeatureCollection
 from pydantic import AwareDatetime
 from starlette.responses import JSONResponse
@@ -25,6 +27,10 @@ from api.util import split_string_parameters_to_list
 from data.data import get_data
 from data.data import get_station
 from data.data import get_variables
+from geojson_pydantic import Point
+from starlette.responses import JSONResponse
+
+from data import data
 
 router = APIRouter(prefix="/collections/observations")
 
@@ -85,7 +91,31 @@ async def get_locations(
         Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
     ] = None,
 ) -> EDRFeatureCollection:
-    pass
+    stations = data.get_stations()
+    if bbox:
+        bbox_values = list(map(lambda x: float(str.strip(x)), bbox.split(",")))
+        if len(bbox_values) != 4:
+            raise HTTPException(status_code=400, detail="If provided, the bbox should have 4 values")
+        left, bottom, right, top = bbox_values
+        stations = list(filter(lambda s: left <= s.longitude <= right and bottom <= s.latitude <= top, stations))
+
+    features = [
+        Feature(
+            type="Feature",
+            id=station.id,
+            properties={
+                "name": station.name,
+                # "detail": f"https://oscar.wmo.int/surface/rest/api/search/station?wigosId=0-20000-0-{station.id}",
+                # "parameter-name": sorted(platform_parameters[station_id]),
+            },
+            geometry=Point(
+                type="Point",
+                coordinates=(station.latitude, station.longitude),
+            ),
+        )
+        for station in stations
+    ]
+    return EDRFeatureCollection(type="FeatureCollection", features=features, parameters={})  # TODO: Add parameters
 
 
 @router.get(
