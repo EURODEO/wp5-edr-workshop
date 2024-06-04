@@ -18,13 +18,8 @@ def create_url_from_request(request):
 
 
 # TODO: Move to a Query Model?
-def split_string_parameters_to_list(value: str | list[str]):  # TODO: When is the input a list? If you do ?p=1&p=2&p=3 ?
-    if not value:
-        return None
-    elif isinstance(value, str):
-        return list(map(str.strip, value.split(",")))
-    else:
-        return value
+def split_string_parameters_to_list(value: str) -> list[str]:
+    return list(map(str.strip, value.split(",")))
 
 
 # TODO: Move to a Query Model?

@@ -109,15 +109,15 @@ async def get_data_location_id(
         raise HTTPException(status_code=404, detail="Location not found")
 
     # Parameter_name query parameter
-    requested_parameters = split_string_parameters_to_list(parameter_name)
+    requested_parameters = split_string_parameters_to_list(parameter_name) if parameter_name else None
     available_parameters = get_parameters()
 
-    if not parameter_name:
+    if not requested_parameters:
         parameters = available_parameters
     elif not set(requested_parameters).issubset(set(available_parameters.keys())):
         unavailable_parameters = set(requested_parameters) - set(available_parameters.keys())
         raise HTTPException(
-            status_code=422, detail=f"The following parameters are not available: {unavailable_parameters}"
+            status_code=400, detail=f"The following parameters are not available: {unavailable_parameters}"
         )
     else:
         parameters: dict[str, Parameter] = {p: available_parameters[p] for p in requested_parameters}
@@ -150,10 +150,8 @@ async def get_data_location_id(
         )
 
     if len(t_values) == 0:
-        # TODO: Exact response needs discussion
-        # Indeed need to discuss, but 422 is not allowed:
-        # https://docs.ogc.org/is/19-086r6/19-086r6.html#_e006a89e-6e26-4c11-b1e3-15988d48eb14
-        raise HTTPException(status_code=422, detail="No data available")
+        # TODO: Exact response needs further discussion
+        raise HTTPException(status_code=400, detail="No data available")
 
     domain = Domain(
         domainType=DomainType.point_series,
