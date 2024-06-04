@@ -77,7 +77,7 @@ def get_variable(id: str):
 
 
 def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]:
-    var = ds.sel(station=station)[variable].fillna(None)
+    var = ds.sel(station=station)[variable].fillna(None)  # TODO: Check type with and without .fillna()
     data = []
     for time, obs_value in zip(
         pd.to_datetime(var["time"].data).to_pydatetime(),

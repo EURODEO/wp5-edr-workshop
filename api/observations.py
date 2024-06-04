@@ -18,18 +18,16 @@ from fastapi import Path
 from fastapi import Query
 from geojson_pydantic import Feature
 from geojson_pydantic import FeatureCollection
+from geojson_pydantic import Point
 from pydantic import AwareDatetime
 from starlette.responses import JSONResponse
 
 from api.util import split_raw_interval_into_start_end_datetime
 from api.util import split_string_parameters_to_list
+from data import data
 from data.data import get_data
 from data.data import get_station
 from data.data import get_variables
-from geojson_pydantic import Point
-from starlette.responses import JSONResponse
-
-from data import data
 from data.data import get_variables_for_station
 
 router = APIRouter(prefix="/collections/observations")
@@ -85,7 +83,7 @@ def get_parameters() -> dict[str, Parameter]:
 )
 async def get_locations(
     bbox: Annotated[str | None, Query(example="5.0,52.0,6.0,52.1")] = None,
-    # datetime: Annotated[str | None, Query(example="2022-12-31T00:00Z/2023-01-01T00:00Z")] = None,
+    # datetime: Annotated[str | None, Query(example="2022-12-31T00:00:00Z/2023-01-01T00:00:00Z")] = None,
     parameter_name: Annotated[
         str | None,
         Query(
@@ -150,7 +148,7 @@ async def get_data_location_id(
         str | None,
         Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
     ] = None,
-    datetime: Annotated[str | None, Query(example="2023-01-01T00:00Z/2023-01-02T00:00Z")] = None,
+    datetime: Annotated[str | None, Query(example="2023-01-01T00:00:00Z/2023-01-02T00:00:00Z")] = None,
 ) -> Coverage:
     # Location query parameter
     station = get_station(location_id)
@@ -185,6 +183,7 @@ async def get_data_location_id(
         raise HTTPException(status_code=400, detail="No data available")
 
     # Get parameter data
+    # TODO: Drop ranges (and parameters) with only nan's.
     ranges = {}
     for p in parameters:
         values = []
