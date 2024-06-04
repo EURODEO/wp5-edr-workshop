@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timezone
 from functools import cache
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -87,6 +88,17 @@ def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]
 
 
 @cache
+def get_variables_for_station(station_id: str):
+    vars = get_variables()
+    vars_with_data = []
+    for var in vars:
+        var_data = ds.sel(station=station_id)[var.id]
+        if not np.isnan(var_data.values).all():
+            vars_with_data.append(var)
+    return vars_with_data
+
+
+@cache
 def get_temporal_extent():
     times = pd.to_datetime(ds.time.data).to_pydatetime()
     return min(times).replace(tzinfo=timezone.utc), max(times).replace(tzinfo=timezone.utc)
@@ -101,3 +113,6 @@ if __name__ == "__main__":
     print(get_data("06260", "ff"))
 
     print(get_temporal_extent())
+
+    print(len(get_variables_for_station("06260")))
+    print(len(get_variables_for_station("06229")))

@@ -1,4 +1,3 @@
-import logging
 from typing import Annotated
 
 from covjson_pydantic.coverage import Coverage
@@ -31,6 +30,7 @@ from geojson_pydantic import Point
 from starlette.responses import JSONResponse
 
 from data import data
+from data.data import get_variables_for_station
 
 router = APIRouter(prefix="/collections/observations")
 
@@ -85,10 +85,15 @@ def get_parameters() -> dict[str, Parameter]:
 )
 async def get_locations(
     bbox: Annotated[str | None, Query(example="5.0,52.0,6.0,52.1")] = None,
-    datetime: Annotated[str | None, Query(example="2022-12-31T00:00Z/2023-01-01T00:00Z")] = None,
+    # datetime: Annotated[str | None, Query(example="2022-12-31T00:00Z/2023-01-01T00:00Z")] = None,
     parameter_name: Annotated[
         str | None,
-        Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
+        Query(
+            alias="parameter-name",
+            description="Comma seperated list of parameter names. "
+            "Return only locations that have one of these parameter.",
+            example="ff, dd",
+        ),
     ] = None,
 ) -> EDRFeatureCollection:
     stations = data.get_stations()
@@ -99,22 +104,36 @@ async def get_locations(
         left, bottom, right, top = bbox_values
         stations = list(filter(lambda s: left <= s.longitude <= right and bottom <= s.latitude <= top, stations))
 
-    features = [
-        Feature(
-            type="Feature",
-            id=station.id,
-            properties={
-                "name": station.name,
-                # "detail": f"https://oscar.wmo.int/surface/rest/api/search/station?wigosId=0-20000-0-{station.id}",
-                # "parameter-name": sorted(platform_parameters[station_id]),
-            },
-            geometry=Point(
-                type="Point",
-                coordinates=(station.latitude, station.longitude),
-            ),
+    requested_parameters = None
+    if parameter_name:
+        # TODO: Compare with parameters that exist?
+        requested_parameters = set(map(lambda x: str.strip(x), parameter_name.split(",")))
+
+    features = []
+    for station in stations:
+        variables_for_station = get_variables_for_station(station.id)
+        parameter_names_for_station = list(map(lambda x: x.id, variables_for_station))
+
+        # Filter out stations that have none of the requested parameters
+        if requested_parameters and not requested_parameters.intersection(parameter_names_for_station):
+            continue
+
+        features.append(
+            Feature(
+                type="Feature",
+                id=station.id,
+                properties={
+                    "name": station.name,
+                    # "detail": f"https://oscar.wmo.int/surface/rest/api/search/station?wigosId=0-20000-0-{station.id}",
+                    "parameter-name": parameter_names_for_station,
+                },
+                geometry=Point(
+                    type="Point",
+                    coordinates=(station.latitude, station.longitude),
+                ),
+            )
         )
-        for station in stations
-    ]
+
     return EDRFeatureCollection(type="FeatureCollection", features=features, parameters={})  # TODO: Add parameters
 
 
