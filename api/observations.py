@@ -127,38 +127,35 @@ async def get_data_location_id(
     start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
 
     if end_datetime < start_datetime:
-        raise HTTPException(status_code=422, detail="The start datetime must be before end datetime")
+        raise HTTPException(status_code=400, detail="The start datetime must be before end datetime")
 
-    # Get data
+    # See if we have any data in this time interval by testing the first parameter
+    # TODO: Making assumption here the time interval is the same for all parameters
+    data = get_data(location_id, list(parameters)[0])
+    t_axis_values = [t for t, v in data if (start_datetime <= t <= end_datetime)]
+    if len(t_axis_values) == 0:
+        raise HTTPException(status_code=400, detail="No data available")
+
+    # Get parameter data
     ranges = {}
-    t_values = []
     for p in parameters:
-        data = get_data(location_id, p)
-
-        t_values = []  # TODO: This code scares me.
         values = []
-        for time, value in data:
-            if start_datetime <= time < end_datetime:  # TOD: I think standard requires both sides to be closed.
-                t_values.append(time)
+        for time, value in get_data(location_id, p):
+            if start_datetime <= time <= end_datetime:
                 values.append(value)
 
-        # TODO: Making assumption here len(t_values) is the same for all parameters
         ranges[p] = NdArray(
             axisNames=["t", "y", "x"],
-            shape=[len(t_values), 1, 1],
-            values=values,  # TODO: Code doesn't work with NaN (run with empty parameter_names to test)
+            shape=[len(values), 1, 1],
+            values=values,
         )
-
-    if len(t_values) == 0:
-        # TODO: Exact response needs further discussion
-        raise HTTPException(status_code=400, detail="No data available")
 
     domain = Domain(
         domainType=DomainType.point_series,
         axes=Axes(
             x=ValuesAxis[float](values=[station.longitude]),
             y=ValuesAxis[float](values=[station.latitude]),
-            t=ValuesAxis[AwareDatetime](values=t_values),
+            t=ValuesAxis[AwareDatetime](values=t_axis_values),
         ),
         referencing=get_reference_system(),
     )

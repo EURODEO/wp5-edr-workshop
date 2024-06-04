@@ -32,7 +32,7 @@ def split_raw_interval_into_start_end_datetime(value) -> tuple:
     if not value:
         return start_datetime, end_datetime
 
-    values = tuple(value.strip() for value in value.split("/"))
+    values = list(v.strip() for v in value.split("/"))
 
     if len(values) == 1:
         start_datetime = aware_datetime_type_adapter.validate_python(values[0])

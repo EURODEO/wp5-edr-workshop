@@ -76,13 +76,13 @@ def get_variable(id: str):
 
 
 def get_data(station: str, variable: str) -> list[tuple[datetime, float]]:
-    var = ds.sel(station=station)[variable]
+    var = ds.sel(station=station)[variable].fillna(None)
     data = []
     for time, obs_value in zip(
         pd.to_datetime(var["time"].data).to_pydatetime(),
         var.data,
     ):
-        data.append((time.replace(tzinfo=pytz.UTC), float(obs_value)))
+        data.append((time.replace(tzinfo=pytz.UTC), obs_value))
     return data
 
 
