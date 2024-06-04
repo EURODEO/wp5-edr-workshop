@@ -14,8 +14,8 @@ from edr_pydantic.unit import Unit
 from edr_pydantic.variables import Variables
 
 from api.util import datetime_to_iso_string
-from data.data import get_data
 from data.data import get_stations
+from data.data import get_temporal_extent
 from data.data import get_variables
 
 
@@ -30,23 +30,6 @@ def get_spatial_extent() -> tuple[float, float, float, float]:
     top = max(lats)
 
     return left, bottom, right, top
-
-
-# TODO: Very inefficient.
-# TODO: This should not be cached in a real API
-@cache
-def get_temporal_extent():
-    start_dates = []
-    end_dates = []
-    for station in get_stations():
-        for variable in get_variables():
-            data = get_data(station.id, variable.id)
-            start_dates.append(data[0][0])
-            end_dates.append(data[-1][0])
-    start = min(start_dates)
-    end = max(end_dates)
-
-    return start, end
 
 
 async def get_collection_metadata(base_url: str, is_self) -> Collection:
