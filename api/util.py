@@ -38,9 +38,9 @@ def split_raw_interval_into_start_end_datetime(value) -> tuple:
         start_datetime = aware_datetime_type_adapter.validate_python(values[0])
         end_datetime = start_datetime
     else:
-        if value[0] != "..":
+        if values[0] != "..":
             start_datetime = aware_datetime_type_adapter.validate_python(values[0])
-        if value[1] != "..":
+        if values[1] != "..":
             end_datetime = aware_datetime_type_adapter.validate_python(values[1])
 
     return start_datetime, end_datetime

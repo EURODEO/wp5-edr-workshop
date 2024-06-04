@@ -123,7 +123,6 @@ async def get_data_location_id(
         parameters: dict[str, Parameter] = {p: available_parameters[p] for p in requested_parameters}
 
     # Datetime query parameter
-    # TODO: Single datetime input doesn't work for me. Open ranges (datetime/.. and ../datetime) don't work.
     start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
 
     if end_datetime < start_datetime:
