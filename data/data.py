@@ -86,6 +86,11 @@ def get_data(station: str, variable: str) -> list[tuple[datetime, float]]:
     return data
 
 
+def get_temporal_extent():
+    times = pd.to_datetime(ds.time.data).to_pydatetime()
+    return min(times).replace(tzinfo=pytz.UTC), max(times).replace(tzinfo=pytz.UTC)
+
+
 if __name__ == "__main__":
     print(get_stations())
     print(get_variables())
@@ -93,3 +98,5 @@ if __name__ == "__main__":
     print(get_station("06260"))
     print(get_variable("ff"))
     print(get_data("06260", "ff"))
+
+    print(get_temporal_extent())
