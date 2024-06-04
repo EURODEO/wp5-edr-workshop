@@ -1,4 +1,8 @@
 from datetime import datetime
+from datetime import timezone
+
+from pydantic import AwareDatetime
+from pydantic import TypeAdapter
 
 
 def create_url_from_request(request):
@@ -13,6 +17,7 @@ def create_url_from_request(request):
     return f"{scheme}://{host}{base_path}/collections"
 
 
+# TODO: Move to a Query Model?
 def split_string_parameters_to_list(value: str | list[str]):
     if not value:
         return None
@@ -20,6 +25,30 @@ def split_string_parameters_to_list(value: str | list[str]):
         return list(map(str.strip, value.split(",")))
     else:
         return value
+
+
+# TODO: Move to a Query Model?
+def split_raw_interval_into_start_end_datetime(value) -> tuple:
+    aware_datetime_type_adapter = TypeAdapter(AwareDatetime)
+
+    start_datetime = datetime.min.replace(tzinfo=timezone.utc)
+    end_datetime = datetime.max.replace(tzinfo=timezone.utc)
+
+    if not value:
+        return start_datetime, end_datetime
+
+    values = tuple(value.strip() for value in value.split("/"))
+
+    if len(values) == 1:
+        start_datetime = aware_datetime_type_adapter.validate_python(values[0])
+        end_datetime = start_datetime
+    else:
+        if value[0] != "..":
+            start_datetime = aware_datetime_type_adapter.validate_python(values[0])
+        if value[1] != "..":
+            end_datetime = aware_datetime_type_adapter.validate_python(values[1])
+
+    return start_datetime, end_datetime
 
 
 def datetime_to_iso_string(value: datetime) -> str:

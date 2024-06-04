@@ -20,6 +20,7 @@ from geojson_pydantic import FeatureCollection
 from pydantic import AwareDatetime
 from starlette.responses import JSONResponse
 
+from api.util import split_raw_interval_into_start_end_datetime
 from api.util import split_string_parameters_to_list
 from data.data import get_data
 from data.data import get_station
@@ -124,23 +125,37 @@ async def get_data_location_id(
             status_code=422, detail=f"The following parameters are not available: {unavailable_parameters}"
         )
     else:
-        parameters: dict[str, Parameter] = {}
-        for p in requested_parameters:
-            parameters[p] = available_parameters[p]
+        parameters: dict[str, Parameter] = {p: available_parameters[p] for p in requested_parameters}
+
+    # Datetime query parameter
+    start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
+
+    if end_datetime < start_datetime:
+        raise HTTPException(status_code=422, detail="The start datetime must be before end datetime")
 
     # Get data
     ranges = {}
     t_values = []
     for p in parameters:
         data = get_data(location_id, p)
-        r_values = [t[1] for t in data]
-        t_values = [t[0] for t in data]
 
+        t_values = []
+        values = []
+        for d in data:
+            if start_datetime <= d[0] < end_datetime:
+                t_values.append(d[0])
+                values.append(d[1])
+
+        # TODO: Making assumption here len(t_values) is the same for all parameters
         ranges[p] = NdArray(
             axisNames=["t", "y", "x"],
-            shape=[len(r_values), 1, 1],
-            values=r_values,
+            shape=[len(t_values), 1, 1],
+            values=values,
         )
+
+    if len(t_values) == 0:
+        # TODO: Exact response needs discussion
+        raise HTTPException(status_code=422, detail="No data available")
 
     domain = Domain(
         domainType=DomainType.point_series,
