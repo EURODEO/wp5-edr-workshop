@@ -42,11 +42,6 @@ class EDRFeatureCollection(EdrBaseModel, FeatureCollection):
 
 
 def get_reference_system() -> list[ReferenceSystemConnectionObject]:
-    """
-    Define static reference systems and return list.
-    :param
-    :return: Reference systems
-    """
     geo_reference_system = ReferenceSystem(type="GeographicCRS", id="http://www.opengis.net/def/crs/EPSG/0/4326")
     geo_referencing = ReferenceSystemConnectionObject(system=geo_reference_system, coordinates=["y", "x"])
 
@@ -128,6 +123,7 @@ async def get_data_location_id(
         parameters: dict[str, Parameter] = {p: available_parameters[p] for p in requested_parameters}
 
     # Datetime query parameter
+    # TODO: Single datetime input doesn't work for me. Open ranges (datetime/.. and ../datetime) don't work.
     start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
 
     if end_datetime < start_datetime:
@@ -139,22 +135,24 @@ async def get_data_location_id(
     for p in parameters:
         data = get_data(location_id, p)
 
-        t_values = []
+        t_values = []  # TODO: This code scares me.
         values = []
-        for d in data:
-            if start_datetime <= d[0] < end_datetime:
-                t_values.append(d[0])
-                values.append(d[1])
+        for time, value in data:
+            if start_datetime <= time < end_datetime:  # TOD: I think standard requires both sides to be closed.
+                t_values.append(time)
+                values.append(value)
 
         # TODO: Making assumption here len(t_values) is the same for all parameters
         ranges[p] = NdArray(
             axisNames=["t", "y", "x"],
             shape=[len(t_values), 1, 1],
-            values=values,
+            values=values,  # TODO: Code doesn't work with NaN (run with empty parameter_names to test)
         )
 
     if len(t_values) == 0:
         # TODO: Exact response needs discussion
+        # Indeed need to discuss, but 422 is not allowed:
+        # https://docs.ogc.org/is/19-086r6/19-086r6.html#_e006a89e-6e26-4c11-b1e3-15988d48eb14
         raise HTTPException(status_code=422, detail="No data available")
 
     domain = Domain(
