@@ -58,16 +58,6 @@ def get_reference_system() -> list[ReferenceSystemConnectionObject]:
     return [geo_referencing, temporal_referencing]
 
 
-def get_all_parameters() -> dict[str, Parameter]:
-    variables = get_variables()
-
-    parameters = {}
-    for var in variables:
-        parameters[var.id] = get_covjson_parameter_from_variable(var)
-
-    return parameters
-
-
 def check_requested_parameters_exist(requested_parameters, all_parameters):
     if not set(requested_parameters).issubset(set(all_parameters)):
         unavailable_parameters = set(requested_parameters) - set(all_parameters)
@@ -104,7 +94,7 @@ async def get_locations(
         left, bottom, right, top = bbox_values
         stations = list(filter(lambda s: left <= s.longitude <= right and bottom <= s.latitude <= top, stations))
 
-    all_parameters: dict[str, Parameter] = get_all_parameters()
+    all_parameters: dict[str, Parameter] = {var.id: get_covjson_parameter_from_variable(var) for var in get_variables()}
     requested_parameters = None
     if parameter_name:
         requested_parameters = set(map(lambda x: str.strip(x), parameter_name.split(",")))
@@ -162,7 +152,9 @@ async def get_data_location_id(
         raise HTTPException(status_code=404, detail="Location not found")
 
     # Parameter_name query parameter
-    parameters: dict[str, Parameter] = get_all_parameters()
+    parameters: dict[str, Parameter] = {
+        var.id: get_covjson_parameter_from_variable(var) for var in get_variables_for_station(location_id)
+    }
 
     if parameter_name:
         requested_parameters = split_string_parameters_to_list(parameter_name)
@@ -184,7 +176,6 @@ async def get_data_location_id(
         raise HTTPException(status_code=400, detail="No data available")
 
     # Get parameter data
-    # TODO: Drop ranges (and parameters) with only nan's.
     ranges = {}
     for p in parameters:
         values = []
