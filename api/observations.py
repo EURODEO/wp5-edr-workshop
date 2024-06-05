@@ -59,7 +59,7 @@ def get_reference_system() -> list[ReferenceSystemConnectionObject]:
     return [geo_referencing, temporal_referencing]
 
 
-def get_parameters() -> dict[str, Parameter]:
+def get_all_parameters() -> dict[str, Parameter]:
     variables = get_variables()
 
     parameters = {}
@@ -76,6 +76,14 @@ def get_parameters() -> dict[str, Parameter]:
         )
 
     return parameters
+
+
+def check_requested_parameters_exist(requested_parameters, all_parameters):
+    if not set(requested_parameters).issubset(set(all_parameters)):
+        unavailable_parameters = set(requested_parameters) - set(all_parameters)
+        raise HTTPException(
+            status_code=400, detail=f"The following parameters are not available: {unavailable_parameters}"
+        )
 
 
 @router.get(
@@ -106,10 +114,11 @@ async def get_locations(
         left, bottom, right, top = bbox_values
         stations = list(filter(lambda s: left <= s.longitude <= right and bottom <= s.latitude <= top, stations))
 
+    all_parameters: dict[str, Parameter] = get_all_parameters()
     requested_parameters = None
     if parameter_name:
-        # TODO: Compare with parameters that exist?
         requested_parameters = set(map(lambda x: str.strip(x), parameter_name.split(",")))
+        check_requested_parameters_exist(requested_parameters, all_parameters.keys())
 
     features = []
     for station in stations:
@@ -160,18 +169,13 @@ async def get_data_location_id(
         raise HTTPException(status_code=404, detail="Location not found")
 
     # Parameter_name query parameter
-    parameters = get_parameters()
+    parameters: dict[str, Parameter] = get_all_parameters()
 
     if parameter_name:
         requested_parameters = split_string_parameters_to_list(parameter_name)
+        check_requested_parameters_exist(requested_parameters, parameters.keys())
 
-        if not set(requested_parameters).issubset(set(parameters.keys())):
-            unavailable_parameters = set(requested_parameters) - set(parameters.keys())
-            raise HTTPException(
-                status_code=400, detail=f"The following parameters are not available: {unavailable_parameters}"
-            )
-
-        parameters: dict[str, Parameter] = {p: parameters[p] for p in requested_parameters}
+        parameters = {p: parameters[p] for p in requested_parameters}
 
     # Datetime query parameter
     start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
