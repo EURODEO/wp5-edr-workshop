@@ -121,6 +121,7 @@ async def get_locations(
         check_requested_parameters_exist(requested_parameters, all_parameters.keys())
 
     features = []
+    parameter_ids_returned_stations = set()
     for station in stations:
         variables_for_station = get_variables_for_station(station.id)
         parameter_names_for_station = list(map(lambda x: x.id, variables_for_station))
@@ -136,7 +137,7 @@ async def get_locations(
                 properties={
                     "name": station.name,
                     # "detail": f"https://oscar.wmo.int/surface/rest/api/search/station?wigosId=0-20000-0-{station.id}",
-                    "parameter-name": parameter_names_for_station,
+                    "parameter-name": sorted(parameter_names_for_station),
                 },
                 geometry=Point(
                     type="Point",
@@ -144,8 +145,10 @@ async def get_locations(
                 ),
             )
         )
+        parameter_ids_returned_stations.update(parameter_names_for_station)
 
-    return EDRFeatureCollection(type="FeatureCollection", features=features, parameters={})  # TODO: Add parameters
+    parameters_returned_stations = {key: all_parameters[key] for key in sorted(parameter_ids_returned_stations)}
+    return EDRFeatureCollection(type="FeatureCollection", features=features, parameters=parameters_returned_stations)
 
 
 @router.get(

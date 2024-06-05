@@ -38,7 +38,7 @@ async def get_collection_metadata(base_url: str, is_self) -> Collection:
 
     parameters: dict[str, Parameter] = {}
     for var in get_variables():
-        p = Parameter(
+        p = Parameter(  # TODO: Merge with Parameter code in observations.py
             id=var.id,
             # label=var.id,
             description=var.long_name,
