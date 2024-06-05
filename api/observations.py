@@ -174,13 +174,6 @@ def get_coverage_for_station(station, parameters, start_datetime, end_datetime) 
     return Coverage(domain=domain, parameters=parameters, ranges=ranges)
 
 
-def handle_parameter_name(parameter_name, parameters):
-    requested_parameters = split_string_parameters_to_list(parameter_name)
-    check_requested_parameters_exist(requested_parameters, parameters.keys())
-
-    return {p: parameters[p] for p in requested_parameters}
-
-
 def handle_datetime(datetime):
     start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
     if end_datetime < start_datetime:
@@ -208,15 +201,18 @@ async def get_data_location_id(
     if not station:
         raise HTTPException(status_code=404, detail="Location not found")
 
+    start_datetime, end_datetime = handle_datetime(datetime)
+
     # Parameter_name query parameter
     parameters: dict[str, Parameter] = {
         var.id: get_covjson_parameter_from_variable(var) for var in get_variables_for_station(location_id)
     }
 
     if parameter_name:
-        parameters = handle_parameter_name(parameter_name, parameters)
+        requested_parameters = split_string_parameters_to_list(parameter_name)
+        check_requested_parameters_exist(requested_parameters, parameters.keys())
 
-    start_datetime, end_datetime = handle_datetime(datetime)
+        parameters = {p: parameters[p] for p in requested_parameters}
 
     return get_coverage_for_station(station, parameters, start_datetime, end_datetime)
 
@@ -242,15 +238,25 @@ async def get_data_area(
     if not stations_in_polygon:
         raise HTTPException(status_code=404, detail="No stations in polygon")
 
-    parameters: dict[str, Parameter] = {var.id: get_covjson_parameter_from_variable(var) for var in get_variables()}
-
-    # Parameter_name query parameter
-    if parameter_name:
-        parameters = handle_parameter_name(parameter_name, parameters)
-
     start_datetime, end_datetime = handle_datetime(datetime)
 
-    coverages = [
-        get_coverage_for_station(station, parameters, start_datetime, end_datetime) for station in stations_in_polygon
-    ]
+    # Check that the parameters requested exist in the store
+    # NOTE: How do we define that a parameter exist? In all stations? In a specific station?
+    # In the stations in the polygon?
+    if parameter_name:
+        all_parameter_ids = [var.id for var in get_variables()]
+        requested_parameters = split_string_parameters_to_list(parameter_name)
+        check_requested_parameters_exist(requested_parameters, all_parameter_ids)
+
+    coverages = []
+    for station in stations_in_polygon:
+        # Make sure we only return data for parameters that exist for each station
+        parameters: dict[str, Parameter] = {
+            var.id: get_covjson_parameter_from_variable(var) for var in get_variables_for_station(station.id)
+        }
+        if parameter_name:
+            parameters = {p: parameters[p] for p in set(requested_parameters).intersection(set(parameters.keys()))}
+
+        if parameters:  # Anything left?
+            coverages.append(get_coverage_for_station(station, parameters, start_datetime, end_datetime))
     return CoverageCollection(coverages=coverages)
