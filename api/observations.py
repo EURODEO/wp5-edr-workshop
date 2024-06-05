@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from covjson_pydantic.coverage import Coverage
@@ -31,6 +32,9 @@ from data.data import get_variables
 from data.data import get_variables_for_station
 
 router = APIRouter(prefix="/collections/observations")
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class CoverageJsonResponse(JSONResponse):

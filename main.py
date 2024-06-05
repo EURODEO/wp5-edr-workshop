@@ -17,7 +17,6 @@ from api import observations
 from api.util import create_url_from_request
 
 
-# TODO: Fix logging so it works in all files
 def setup_logging():
     logger = logging.getLogger()
     syslog = logging.StreamHandler()
@@ -29,6 +28,7 @@ def setup_logging():
 
 setup_logging()
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 app = FastAPI(swagger_ui_parameters={"defaultModelsExpandDepth": -1, "tryItOutEnabled": True})
