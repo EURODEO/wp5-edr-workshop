@@ -90,7 +90,7 @@ async def get_collections(request: Request) -> Collections:
         links=[
             Link(href=f"{base_url}", rel="self"),
         ],
-        collections=[await collection.get_collection_metadata(base_url, is_self=False)],
+        collections=[collection.get_collection_metadata(base_url, is_self=False)],
     )
 
 
@@ -102,7 +102,7 @@ async def get_collections(request: Request) -> Collections:
 )
 async def get_collection_metadata(request: Request) -> Collection:
     base_url = create_url_from_request(request)
-    return await collection.get_collection_metadata(base_url, is_self=True)
+    return collection.get_collection_metadata(base_url, is_self=True)
 
 
 # Include other routes

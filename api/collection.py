@@ -36,7 +36,7 @@ def get_spatial_extent() -> tuple[float, float, float, float]:
     return left, bottom, right, top
 
 
-async def get_collection_metadata(base_url: str, is_self) -> Collection:
+def get_collection_metadata(base_url: str, is_self) -> Collection:
     start, end = get_temporal_extent()
     left, bottom, right, top = get_spatial_extent()
 

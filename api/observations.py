@@ -2,6 +2,7 @@ import logging
 from typing import Annotated
 
 from covjson_pydantic.coverage import Coverage
+from covjson_pydantic.coverage import CoverageCollection
 from covjson_pydantic.domain import Axes
 from covjson_pydantic.domain import Domain
 from covjson_pydantic.domain import DomainType
@@ -19,6 +20,8 @@ from geojson_pydantic import Feature
 from geojson_pydantic import FeatureCollection
 from geojson_pydantic import Point
 from pydantic import AwareDatetime
+from shapely import geometry
+from shapely import wkt
 from starlette.responses import JSONResponse
 
 from api.util import get_covjson_parameter_from_variable
@@ -27,6 +30,7 @@ from api.util import split_string_parameters_to_list
 from data import data
 from data.data import get_data
 from data.data import get_station
+from data.data import get_stations
 from data.data import get_variables
 from data.data import get_variables_for_station
 
@@ -135,6 +139,55 @@ async def get_locations(
     return EDRFeatureCollection(type="FeatureCollection", features=features, parameters=parameters_returned_stations)
 
 
+def get_coverage_for_station(station, parameters, start_datetime, end_datetime) -> Coverage:
+    # See if we have any data in this time interval by testing the first parameter
+    # TODO: Making assumption here the time interval is the same for all parameters
+    data = get_data(station.id, list(parameters)[0])
+    t_axis_values = [t for t, v in data if (start_datetime <= t <= end_datetime)]
+    if len(t_axis_values) == 0:
+        raise HTTPException(status_code=400, detail="No data available")
+
+    # Get parameter data
+    ranges = {}
+    for p in parameters:
+        values = []
+        for time, value in get_data(station.id, p):
+            if start_datetime <= time <= end_datetime:
+                values.append(value)
+
+        ranges[p] = NdArray(
+            axisNames=["t", "y", "x"],
+            shape=[len(values), 1, 1],
+            values=values,
+        )
+
+    domain = Domain(
+        domainType=DomainType.point_series,
+        axes=Axes(
+            x=ValuesAxis[float](values=[station.longitude]),
+            y=ValuesAxis[float](values=[station.latitude]),
+            t=ValuesAxis[AwareDatetime](values=t_axis_values),
+        ),
+        referencing=get_reference_system(),
+    )
+
+    return Coverage(domain=domain, parameters=parameters, ranges=ranges)
+
+
+def handle_parameter_name(parameter_name, parameters):
+    requested_parameters = split_string_parameters_to_list(parameter_name)
+    check_requested_parameters_exist(requested_parameters, parameters.keys())
+
+    return {p: parameters[p] for p in requested_parameters}
+
+
+def handle_datetime(datetime):
+    start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
+    if end_datetime < start_datetime:
+        raise HTTPException(status_code=400, detail="The start datetime must be before end datetime")
+    return start_datetime, end_datetime
+
+
 @router.get(
     "/locations/{location_id}",
     tags=["Collection data queries"],
@@ -161,46 +214,43 @@ async def get_data_location_id(
     }
 
     if parameter_name:
-        requested_parameters = split_string_parameters_to_list(parameter_name)
-        check_requested_parameters_exist(requested_parameters, parameters.keys())
+        parameters = handle_parameter_name(parameter_name, parameters)
 
-        parameters = {p: parameters[p] for p in requested_parameters}
+    start_datetime, end_datetime = handle_datetime(datetime)
 
-    # Datetime query parameter
-    start_datetime, end_datetime = split_raw_interval_into_start_end_datetime(datetime)
+    return get_coverage_for_station(station, parameters, start_datetime, end_datetime)
 
-    if end_datetime < start_datetime:
-        raise HTTPException(status_code=400, detail="The start datetime must be before end datetime")
 
-    # See if we have any data in this time interval by testing the first parameter
-    # TODO: Making assumption here the time interval is the same for all parameters
-    data = get_data(location_id, list(parameters)[0])
-    t_axis_values = [t for t, v in data if (start_datetime <= t <= end_datetime)]
-    if len(t_axis_values) == 0:
-        raise HTTPException(status_code=400, detail="No data available")
+@router.get(
+    "/area",
+    tags=["Collection data queries"],
+    response_model=CoverageCollection,
+    response_model_exclude_none=True,
+    response_class=CoverageJsonResponse,
+)
+async def get_data_area(
+    coords: Annotated[str, Query(example="POLYGON((5.0 52.0, 6.0 52.0,6.0 52.1,5.0 52.1, 5.0 52.0))")],
+    parameter_name: Annotated[
+        str | None,
+        Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
+    ] = None,
+    datetime: Annotated[str | None, Query(example="2023-01-01T00:00:00Z/2023-01-02T00:00:00Z")] = None,
+):
+    # No error handling!
+    poly = wkt.loads(coords)
+    stations_in_polygon = [s for s in get_stations() if geometry.Point(s.longitude, s.latitude).within(poly)]
+    if not stations_in_polygon:
+        raise HTTPException(status_code=404, detail="No stations in polygon")
 
-    # Get parameter data
-    ranges = {}
-    for p in parameters:
-        values = []
-        for time, value in get_data(location_id, p):
-            if start_datetime <= time <= end_datetime:
-                values.append(value)
+    parameters: dict[str, Parameter] = {var.id: get_covjson_parameter_from_variable(var) for var in get_variables()}
 
-        ranges[p] = NdArray(
-            axisNames=["t", "y", "x"],
-            shape=[len(values), 1, 1],
-            values=values,
-        )
+    # Parameter_name query parameter
+    if parameter_name:
+        parameters = handle_parameter_name(parameter_name, parameters)
 
-    domain = Domain(
-        domainType=DomainType.point_series,
-        axes=Axes(
-            x=ValuesAxis[float](values=[station.longitude]),
-            y=ValuesAxis[float](values=[station.latitude]),
-            t=ValuesAxis[AwareDatetime](values=t_axis_values),
-        ),
-        referencing=get_reference_system(),
-    )
+    start_datetime, end_datetime = handle_datetime(datetime)
 
-    return Coverage(domain=domain, parameters=parameters, ranges=ranges)
+    coverages = [
+        get_coverage_for_station(station, parameters, start_datetime, end_datetime) for station in stations_in_polygon
+    ]
+    return CoverageCollection(coverages=coverages)
