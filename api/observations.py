@@ -87,6 +87,8 @@ async def get_locations(
     ] = None,
 ) -> EDRFeatureCollection:
     stations = data.get_stations()
+
+    # Handle bounding box
     if bbox:
         bbox_values = list(map(lambda x: float(str.strip(x)), bbox.split(",")))
         if len(bbox_values) != 4:
@@ -94,12 +96,14 @@ async def get_locations(
         left, bottom, right, top = bbox_values
         stations = list(filter(lambda s: left <= s.longitude <= right and bottom <= s.latitude <= top, stations))
 
+    # Handle parameters
     all_parameters: dict[str, Parameter] = {var.id: get_covjson_parameter_from_variable(var) for var in get_variables()}
     requested_parameters = None
     if parameter_name:
         requested_parameters = set(map(lambda x: str.strip(x), parameter_name.split(",")))
         check_requested_parameters_exist(requested_parameters, all_parameters.keys())
 
+    # Build list of GeoJSON features
     features = []
     parameter_ids_returned_stations = set()
     for station in stations:
