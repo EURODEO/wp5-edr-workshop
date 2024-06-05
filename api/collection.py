@@ -1,3 +1,4 @@
+import logging
 from functools import cache
 
 from edr_pydantic.collections import Collection
@@ -8,15 +9,18 @@ from edr_pydantic.extent import Spatial
 from edr_pydantic.extent import Temporal
 from edr_pydantic.link import EDRQueryLink
 from edr_pydantic.link import Link
-from edr_pydantic.observed_property import ObservedProperty
 from edr_pydantic.parameter import Parameter
-from edr_pydantic.unit import Unit
 from edr_pydantic.variables import Variables
 
 from api.util import datetime_to_iso_string
+from api.util import get_edr_parameter_from_variable
 from data.data import get_stations
 from data.data import get_temporal_extent
 from data.data import get_variables
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 @cache
@@ -37,18 +41,8 @@ async def get_collection_metadata(base_url: str, is_self) -> Collection:
     left, bottom, right, top = get_spatial_extent()
 
     parameters: dict[str, Parameter] = {}
-    for var in get_variables():
-        p = Parameter(  # TODO: Merge with Parameter code in observations.py
-            id=var.id,
-            # label=var.id,
-            description=var.long_name,
-            observedProperty=ObservedProperty(
-                id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
-                label=var.standard_name,
-            ),
-            unit=Unit(label=var.units),
-        )
-        parameters[var.id] = p
+    for var in sorted(get_variables(), key=lambda x: x.id):
+        parameters[var.id] = get_edr_parameter_from_variable(var)
 
     collection = Collection(
         id="observations",

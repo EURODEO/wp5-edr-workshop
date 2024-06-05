@@ -7,11 +7,9 @@ from covjson_pydantic.domain import Domain
 from covjson_pydantic.domain import DomainType
 from covjson_pydantic.domain import ValuesAxis
 from covjson_pydantic.ndarray import NdArray
-from covjson_pydantic.observed_property import ObservedProperty
 from covjson_pydantic.parameter import Parameter
 from covjson_pydantic.reference_system import ReferenceSystem
 from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
-from covjson_pydantic.unit import Unit
 from edr_pydantic.parameter import EdrBaseModel
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -23,6 +21,7 @@ from geojson_pydantic import Point
 from pydantic import AwareDatetime
 from starlette.responses import JSONResponse
 
+from api.util import get_covjson_parameter_from_variable
 from api.util import split_raw_interval_into_start_end_datetime
 from api.util import split_string_parameters_to_list
 from data import data
@@ -64,16 +63,7 @@ def get_all_parameters() -> dict[str, Parameter]:
 
     parameters = {}
     for var in variables:
-        parameters[var.id] = Parameter(
-            id=var.id,
-            label={"en": var.id},
-            description={"en": var.long_name},
-            observedProperty=ObservedProperty(
-                id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
-                label={"en": var.standard_name},
-            ),
-            unit=Unit(label={"end": var.units}),
-        )
+        parameters[var.id] = get_covjson_parameter_from_variable(var)
 
     return parameters
 
