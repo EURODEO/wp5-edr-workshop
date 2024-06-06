@@ -150,6 +150,9 @@ def get_coverage_for_station(station, parameters, start_datetime, end_datetime) 
             values=values,
         )
 
+    # Add station code
+    station_code = {"inspiregloss:Identifier": station.wsi}
+
     domain = Domain(
         domainType=DomainType.point_series,
         axes=Axes(
@@ -160,7 +163,7 @@ def get_coverage_for_station(station, parameters, start_datetime, end_datetime) 
         referencing=get_reference_system(),
     )
 
-    return Coverage(domain=domain, parameters=parameters, ranges=ranges)
+    return Coverage(domain=domain, parameters=parameters, ranges=ranges, **station_code)
 
 
 def handle_datetime(datetime):
