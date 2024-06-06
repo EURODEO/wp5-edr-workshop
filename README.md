@@ -1,4 +1,4 @@
-# wp5-edr-workshop
+# RODEO Work Package 5 - EDR Workshop
 
 ## Getting started
 
@@ -19,6 +19,16 @@ Run the API in debug mode using
 uvicorn main:app --reload
 ```
 This automatically reloads the API if you make any changes to the source.
+It is also possible to start uvicorn directly using:
+
+```shell
+python3 main.py
+```
+
+## Step debugging
+
+In Pycharm or Visual Studio Code, add `main.py` Python3 run configuration. This
+will start uvicorn while still allowing to do step debugging inside the IDE.
 
 ## Visualization
 

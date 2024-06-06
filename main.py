@@ -1,6 +1,7 @@
 # For developing:    uvicorn main:app --reload
 import logging
 
+import uvicorn
 from brotli_asgi import BrotliMiddleware
 from edr_pydantic.capabilities import ConformanceModel
 from edr_pydantic.capabilities import Contact
@@ -20,7 +21,7 @@ from api.util import create_url_from_request
 def setup_logging():
     logger = logging.getLogger()
     syslog = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s ; e-soh-api ; %(process)s ; %(levelname)s ; %(name)s ; %(message)s")
+    formatter = logging.Formatter("%(asctime)s ; edr-api ; %(process)s ; %(levelname)s ; %(name)s ; %(message)s")
 
     syslog.setFormatter(formatter)
     logger.addHandler(syslog)
@@ -109,3 +110,6 @@ async def get_collection_metadata(request: Request) -> Collection:
 
 # Include other routes
 app.include_router(observations.router)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
