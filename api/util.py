@@ -14,11 +14,12 @@ from data.data import Variable
 
 
 def create_url_from_request(request):
-    # The server root_path contains the path added by a reverse proxy
+    # root_path should contain the base path used by a reverse proxy to serve the API. The value of root_path
+    # can be added as parameter to FastAPI() in main.py. By default it is empty.
     base_path = request.scope.get("root_path")
 
-    # The host will (should) be correctly set from X-Forwarded-Host and X-Forwarded-Scheme
-    # headers by any proxy in front of it
+    # The hostname and scheme (http or https) will (should) be correctly set
+    # from the X-Forwarded-Host and X-Forwarded-Scheme headers by a reverse proxy in front of the API
     host = request.headers["host"]
     scheme = request.url.scheme
 
