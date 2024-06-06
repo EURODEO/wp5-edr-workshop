@@ -73,8 +73,9 @@ def get_variables():
     return variables
 
 
-def get_variable(var_id: str):
-    return list(filter(lambda x: x.id == var_id, get_variables()))[0]
+def get_variable(var_id: str) -> Variable | None:
+    vars = list(filter(lambda x: x.id == var_id, get_variables()))[0]
+    return vars[0] if len(vars) == 1 else None
 
 
 def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]:
