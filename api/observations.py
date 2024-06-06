@@ -9,8 +9,6 @@ from covjson_pydantic.domain import DomainType
 from covjson_pydantic.domain import ValuesAxis
 from covjson_pydantic.ndarray import NdArray
 from covjson_pydantic.parameter import Parameter
-from covjson_pydantic.reference_system import ReferenceSystem
-from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
 from edr_pydantic.parameter import EdrBaseModel
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -25,6 +23,7 @@ from shapely import wkt
 from starlette.responses import JSONResponse
 
 from api.util import get_covjson_parameter_from_variable
+from api.util import get_reference_system
 from api.util import split_raw_interval_into_start_end_datetime
 from api.util import split_string_parameters_to_list
 from data import data
@@ -52,16 +51,6 @@ class EDRFeatureCollection(EdrBaseModel, FeatureCollection):
     parameters: dict[str, Parameter]
 
 
-def get_reference_system() -> list[ReferenceSystemConnectionObject]:
-    geo_reference_system = ReferenceSystem(type="GeographicCRS", id="http://www.opengis.net/def/crs/EPSG/0/4326")
-    geo_referencing = ReferenceSystemConnectionObject(system=geo_reference_system, coordinates=["y", "x"])
-
-    temporal_reference_system = ReferenceSystem(type="TemporalRS", calendar="Gregorian")
-    temporal_referencing = ReferenceSystemConnectionObject(system=temporal_reference_system, coordinates=["t"])
-
-    return [geo_referencing, temporal_referencing]
-
-
 def check_requested_parameters_exist(requested_parameters, all_parameters):
     if not set(requested_parameters).issubset(set(all_parameters)):
         unavailable_parameters = set(requested_parameters) - set(all_parameters)
@@ -79,7 +68,7 @@ def check_requested_parameters_exist(requested_parameters, all_parameters):
 )
 async def get_locations(
     bbox: Annotated[str | None, Query(example="5.0,52.0,6.0,52.1")] = None,
-    # datetime: Annotated[str | None, Query(example="2022-12-31T00:00:00Z/2023-01-01T00:00:00Z")] = None,
+    # datetime: Annotated[str | None, Query(example="2023-01-01T01:00:00Z/2023-01-01T02:00:00Z")] = None,
     parameter_name: Annotated[
         str | None,
         Query(
@@ -129,7 +118,7 @@ async def get_locations(
                 },
                 geometry=Point(
                     type="Point",
-                    coordinates=(station.latitude, station.longitude),
+                    coordinates=(station.longitude, station.latitude),
                 ),
             )
         )
@@ -194,7 +183,7 @@ async def get_data_location_id(
         str | None,
         Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
     ] = None,
-    datetime: Annotated[str | None, Query(example="2023-01-01T00:00:00Z/2023-01-02T00:00:00Z")] = None,
+    datetime: Annotated[str | None, Query(example="2023-01-01T01:00:00Z/2023-01-01T02:00:00Z")] = None,
 ) -> Coverage:
     # Location query parameter
     station = get_station(location_id)
@@ -230,7 +219,7 @@ async def get_data_area(
         str | None,
         Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
     ] = None,
-    datetime: Annotated[str | None, Query(example="2023-01-01T00:00:00Z/2023-01-02T00:00:00Z")] = None,
+    datetime: Annotated[str | None, Query(example="2023-01-01T01:00:00Z/2023-01-01T02:00:00Z")] = None,
 ):
     # No error handling!
     poly = wkt.loads(coords)
