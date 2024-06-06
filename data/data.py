@@ -47,8 +47,8 @@ def get_stations():
     return stations
 
 
-def get_station(id: str):
-    return list(filter(lambda x: x.id == id, get_stations()))[0]
+def get_station(station_id: str):
+    return list(filter(lambda x: x.id == station_id, get_stations()))[0]
 
 
 @cache
@@ -72,8 +72,8 @@ def get_variables():
     return variables
 
 
-def get_variable(id: str):
-    return list(filter(lambda x: x.id == id, get_variables()))[0]
+def get_variable(var_id: str):
+    return list(filter(lambda x: x.id == var_id, get_variables()))[0]
 
 
 def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]:
