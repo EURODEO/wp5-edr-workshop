@@ -249,6 +249,7 @@ async def get_data_area(
         check_requested_parameters_exist(requested_parameters, all_parameter_ids)
 
     coverages = []
+    coverage_parameters: dict[str, Parameter] = {}
     for station in stations_in_polygon:
         # Make sure we only return data for parameters that exist for each station
         parameters: dict[str, Parameter] = {
@@ -259,4 +260,9 @@ async def get_data_area(
 
         if parameters:  # Anything left?
             coverages.append(get_coverage_for_station(station, parameters, start_datetime, end_datetime))
-    return CoverageCollection(coverages=coverages)
+            coverage_parameters.update(parameters)
+
+    if len(coverages) == 0:
+        raise HTTPException(status_code=400, detail="No data available for this query")
+    else:
+        return CoverageCollection(coverages=coverages, parameters=coverage_parameters)
