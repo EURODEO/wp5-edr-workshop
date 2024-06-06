@@ -47,8 +47,9 @@ def get_stations():
     return stations
 
 
-def get_station(station_id: str):
-    return list(filter(lambda x: x.id == station_id, get_stations()))[0]
+def get_station(station_id: str) -> Station | None:
+    stations = list(filter(lambda x: x.id == station_id, get_stations()))
+    return stations[0] if len(stations) == 1 else None
 
 
 @cache
