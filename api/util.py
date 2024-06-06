@@ -3,6 +3,8 @@ from datetime import timezone
 
 from covjson_pydantic.observed_property import ObservedProperty as CovJson_ObservedProperty
 from covjson_pydantic.parameter import Parameter as CovJson_Parameter
+from covjson_pydantic.reference_system import ReferenceSystem
+from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
 from covjson_pydantic.unit import Unit as CovJson_Unit
 from edr_pydantic.observed_property import ObservedProperty as Edr_ObservedProperty
 from edr_pydantic.parameter import Parameter as Edr_Parameter
@@ -101,3 +103,13 @@ def get_edr_parameter_from_variable(var: Variable) -> Edr_Parameter:
         unit=Edr_Unit(label=var.units),
     )
     return parameter
+
+
+def get_reference_system() -> list[ReferenceSystemConnectionObject]:
+    geo_reference_system = ReferenceSystem(type="GeographicCRS", id="http://www.opengis.net/def/crs/EPSG/0/4326")
+    geo_referencing = ReferenceSystemConnectionObject(system=geo_reference_system, coordinates=["y", "x"])
+
+    temporal_reference_system = ReferenceSystem(type="TemporalRS", calendar="Gregorian")
+    temporal_referencing = ReferenceSystemConnectionObject(system=temporal_reference_system, coordinates=["t"])
+
+    return [geo_referencing, temporal_referencing]

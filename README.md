@@ -8,6 +8,22 @@ You can install dependencies using `pip3` or `pip-sync` (from the `pip-tools` pa
 ```shell
 pip3 install -r requirements.txt
 ```
+or
+```shell
+pip3 install pip-tools
+pip-sync
+```
+
+Run the API in debug mode using
+```shell
+uvicorn main:app --reload
+```
+This automatically reloads the API if you make any changes to the source.
+
+## Visualisation
+
+A good place to visualize GeoSJON is [here](https://geojson.io/#map=2/0/20).
+For CoverageJSON you can use the [Playground](https://covjson.org/playground/).
 
 ## Updating dependencies
 
