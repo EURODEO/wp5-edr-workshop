@@ -236,7 +236,7 @@ async def get_data_area(
     poly = wkt.loads(coords)
     stations_in_polygon = [s for s in get_stations() if geometry.Point(s.longitude, s.latitude).within(poly)]
     if not stations_in_polygon:
-        raise HTTPException(status_code=404, detail="No stations in polygon")
+        raise HTTPException(status_code=400, detail="No stations in polygon")
 
     start_datetime, end_datetime = handle_datetime(datetime)
 
