@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timezone
 from functools import cache
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -46,8 +47,9 @@ def get_stations():
     return stations
 
 
-def get_station(id: str):
-    return list(filter(lambda x: x.id == id, get_stations()))[0]
+def get_station(station_id: str) -> Station | None:
+    stations = list(filter(lambda x: x.id == station_id, get_stations()))
+    return stations[0] if len(stations) == 1 else None
 
 
 @cache
@@ -71,8 +73,9 @@ def get_variables():
     return variables
 
 
-def get_variable(id: str):
-    return list(filter(lambda x: x.id == id, get_variables()))[0]
+def get_variable(var_id: str) -> Variable | None:
+    vars = list(filter(lambda x: x.id == var_id, get_variables()))[0]
+    return vars[0] if len(vars) == 1 else None
 
 
 def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]:
@@ -84,6 +87,17 @@ def get_data(station: str, variable: str) -> list[tuple[datetime, float | None]]
     ):
         data.append((time.replace(tzinfo=timezone.utc), obs_value))
     return data
+
+
+@cache
+def get_variables_for_station(station_id: str):
+    vars = get_variables()
+    vars_with_data = []
+    for var in vars:
+        var_data = ds.sel(station=station_id)[var.id]
+        if not np.isnan(var_data.values).all():
+            vars_with_data.append(var)
+    return vars_with_data
 
 
 @cache
@@ -101,3 +115,6 @@ if __name__ == "__main__":
     print(get_data("06260", "ff"))
 
     print(get_temporal_extent())
+
+    print(len(get_variables_for_station("06260")))
+    print(len(get_variables_for_station("06229")))

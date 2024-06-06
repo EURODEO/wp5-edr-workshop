@@ -1,28 +1,35 @@
 from datetime import datetime
 from datetime import timezone
 
+from covjson_pydantic.observed_property import ObservedProperty as CovJson_ObservedProperty
+from covjson_pydantic.parameter import Parameter as CovJson_Parameter
+from covjson_pydantic.unit import Unit as CovJson_Unit
+from edr_pydantic.observed_property import ObservedProperty as Edr_ObservedProperty
+from edr_pydantic.parameter import Parameter as Edr_Parameter
+from edr_pydantic.unit import Unit as Edr_Unit
 from pydantic import AwareDatetime
 from pydantic import TypeAdapter
 
+from data.data import Variable
+
 
 def create_url_from_request(request):
-    # The server root_path contains the path added by a reverse proxy
+    # root_path should contain the base path used by a reverse proxy to serve the API. The value of root_path
+    # can be added as parameter to FastAPI() in main.py. By default it is empty.
     base_path = request.scope.get("root_path")
 
-    # The host will (should) be correctly set from X-Forwarded-Host and X-Forwarded-Scheme
-    # headers by any proxy in front of it
+    # The hostname and scheme (http or https) will (should) be correctly set
+    # from the X-Forwarded-Host and X-Forwarded-Scheme headers by a reverse proxy in front of the API
     host = request.headers["host"]
     scheme = request.url.scheme
 
     return f"{scheme}://{host}{base_path}/collections"
 
 
-# TODO: Move to a Query Model?
 def split_string_parameters_to_list(value: str) -> list[str]:
     return list(map(str.strip, value.split(",")))
 
 
-# TODO: Move to a Query Model?
 def split_raw_interval_into_start_end_datetime(value) -> tuple:
     aware_datetime_type_adapter = TypeAdapter(AwareDatetime)
 
@@ -66,3 +73,31 @@ def datetime_to_iso_string(value: datetime) -> str:
         return f"{iso_8601_str[:-len(tz_offset_utc)]}Z"
     else:
         return iso_8601_str
+
+
+def get_covjson_parameter_from_variable(var: Variable) -> CovJson_Parameter:
+    parameter = CovJson_Parameter(
+        id=var.id,
+        label={"en": var.id},
+        description={"en": var.long_name},
+        observedProperty=CovJson_ObservedProperty(
+            id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
+            label={"en": var.standard_name},
+        ),
+        unit=CovJson_Unit(label={"en": var.units}),
+    )
+    return parameter
+
+
+def get_edr_parameter_from_variable(var: Variable) -> Edr_Parameter:
+    parameter = Edr_Parameter(
+        id=var.id,
+        label=var.id,
+        description=var.long_name,
+        observedProperty=Edr_ObservedProperty(
+            id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
+            label=var.standard_name,
+        ),
+        unit=Edr_Unit(label=var.units),
+    )
+    return parameter
