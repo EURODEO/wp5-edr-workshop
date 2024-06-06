@@ -10,7 +10,7 @@ import xarray as xr
 
 # Load the data
 dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, "20230101.nc")
+filename = os.path.join(dirname, "20240222.nc")
 ds = xr.open_dataset(filename, engine="netcdf4", chunks=None)
 
 
@@ -18,6 +18,7 @@ ds = xr.open_dataset(filename, engine="netcdf4", chunks=None)
 class Station:
     id: str
     name: str
+    wsi: str
     latitude: float
     longitude: float
     height: float
@@ -35,14 +36,15 @@ class Variable:
 @cache
 def get_stations():
     stations = []
-    for station_id, station_name, latitude, longitude, height in zip(
+    for station_id, station_name, wsi, latitude, longitude, height in zip(
         ds["station"].values,
         ds["stationname"].values[0],
+        ds["wsi"].values[0],
         ds["lat"].values[0],
         ds["lon"].values[0],
         ds["height"].values[0],
     ):
-        station = Station(station_id, station_name, latitude, longitude, height)
+        station = Station(station_id, station_name, wsi, latitude, longitude, height)
         stations.append(station)
     return stations
 
@@ -57,7 +59,18 @@ def get_variables():
     variables = []
     for p in ds.data_vars:
         data_var = ds[p]
-        if data_var.name in ["stationname", "lat", "lon", "height", "iso_dataset", "product", "projection"]:
+        if data_var.name in [
+            "wsi",
+            "stationname",
+            "lat",
+            "lon",
+            "height",
+            "iso_dataset",
+            "product",
+            "projection",
+            "nhc",
+            "za",
+        ]:
             continue
         if "standard_name" not in data_var.attrs:
             # Don't handle these for now
