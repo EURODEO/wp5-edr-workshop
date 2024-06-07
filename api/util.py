@@ -1,10 +1,15 @@
 from datetime import datetime
 from datetime import timezone
 
+from covjson_pydantic.observed_property import ObservedProperty
+from covjson_pydantic.parameter import Parameter
 from covjson_pydantic.reference_system import ReferenceSystem
 from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
+from covjson_pydantic.unit import Unit
 from pydantic import AwareDatetime
 from pydantic import TypeAdapter
+
+from data.data import Variable
 
 
 def create_url_from_request(request):
@@ -77,3 +82,17 @@ def get_reference_system() -> list[ReferenceSystemConnectionObject]:
     temporal_referencing = ReferenceSystemConnectionObject(system=temporal_reference_system, coordinates=["t"])
 
     return [geo_referencing, temporal_referencing]
+
+
+def get_covjson_parameter_from_variable(var: Variable) -> Parameter:
+    parameter = Parameter(
+        id=var.id,
+        label={"en": var.id},
+        description={"en": var.long_name},
+        observedProperty=ObservedProperty(
+            id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
+            label={"en": var.standard_name},
+        ),
+        unit=Unit(label={"en": var.units}),
+    )
+    return parameter
