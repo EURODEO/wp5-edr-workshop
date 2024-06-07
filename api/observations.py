@@ -68,7 +68,7 @@ def check_requested_parameters_exist(requested_parameters, all_parameters):
 )
 async def get_locations(
     bbox: Annotated[str | None, Query(example="5.0,52.0,6.0,52.1")] = None,
-    # datetime: Annotated[str | None, Query(example="2023-01-01T01:00:00Z/2023-01-01T02:00:00Z")] = None,
+    # datetime: Annotated[str | None, Query(example="2024-02-22T01:00:00Z/2024-02-22T02:00:00Z")] = None,
     parameter_name: Annotated[
         str | None,
         Query(
@@ -113,7 +113,7 @@ async def get_locations(
                 id=station.id,
                 properties={
                     "name": station.name,
-                    "detail": f"https://oscar.wmo.int/surface/rest/api/search/station?wigosId=0-20000-0-{station.id}",
+                    "detail": f"https://oscar.wmo.int/surface/rest/api/search/station?wigosId={station.wsi}",
                     "parameter-name": sorted(parameter_names_for_station),
                 },
                 geometry=Point(
@@ -150,6 +150,9 @@ def get_coverage_for_station(station, parameters, start_datetime, end_datetime) 
             values=values,
         )
 
+    # Add station code
+    station_code = {"inspiregloss:Identifier": station.wsi}
+
     domain = Domain(
         domainType=DomainType.point_series,
         axes=Axes(
@@ -160,7 +163,7 @@ def get_coverage_for_station(station, parameters, start_datetime, end_datetime) 
         referencing=get_reference_system(),
     )
 
-    return Coverage(domain=domain, parameters=parameters, ranges=ranges)
+    return Coverage(domain=domain, parameters=parameters, ranges=ranges, **station_code)
 
 
 def handle_datetime(datetime):
@@ -183,7 +186,7 @@ async def get_data_location_id(
         str | None,
         Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
     ] = None,
-    datetime: Annotated[str | None, Query(example="2023-01-01T01:00:00Z/2023-01-01T02:00:00Z")] = None,
+    datetime: Annotated[str | None, Query(example="2024-02-22T01:00:00Z/2024-02-22T02:00:00Z")] = None,
 ) -> Coverage:
     # Location query parameter
     station = get_station(location_id)
@@ -219,7 +222,7 @@ async def get_data_area(
         str | None,
         Query(alias="parameter-name", description="Comma seperated list of parameter names.", example="ff, dd"),
     ] = None,
-    datetime: Annotated[str | None, Query(example="2023-01-01T01:00:00Z/2023-01-01T02:00:00Z")] = None,
+    datetime: Annotated[str | None, Query(example="2024-02-22T01:00:00Z/2024-02-22T02:00:00Z")] = None,
 ):
     # No error handling!
     poly = wkt.loads(coords)
