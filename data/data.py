@@ -87,7 +87,7 @@ def get_variables():
 
 
 def get_variable(var_id: str) -> Variable | None:
-    vars = list(filter(lambda x: x.id == var_id, get_variables()))[0]
+    vars = list(filter(lambda x: x.id == var_id, get_variables()))
     return vars[0] if len(vars) == 1 else None
 
 
@@ -124,10 +124,12 @@ if __name__ == "__main__":
     print(get_variables())
 
     print(get_station("06260"))
+    print(get_station("06209"))
     print(get_variable("ff"))
     print(get_data("06260", "ff"))
 
     print(get_temporal_extent())
 
     print(len(get_variables_for_station("06260")))
-    print(len(get_variables_for_station("06229")))
+    print(len(get_variables_for_station("06209")))
+    print(list(map(lambda x: x.id, get_variables_for_station("06209"))))
