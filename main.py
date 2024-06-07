@@ -13,7 +13,9 @@ from edr_pydantic.link import Link
 from fastapi import FastAPI
 from fastapi import Request
 
+from api import collection
 from api import observations
+from api.util import create_url_from_request
 
 
 def setup_logging():
@@ -86,7 +88,13 @@ async def get_conformance(request: Request) -> ConformanceModel:
     response_model_exclude_none=True,
 )
 async def get_collections(request: Request) -> Collections:
-    pass
+    base_url = create_url_from_request(request)
+    return Collections(
+        links=[
+            Link(href=f"{base_url}", rel="self"),
+        ],
+        collections=[collection.get_collection_metadata(base_url, is_self=False)],
+    )
 
 
 @app.get(
@@ -96,7 +104,8 @@ async def get_collections(request: Request) -> Collections:
     response_model_exclude_none=True,
 )
 async def get_collection_metadata(request: Request) -> Collection:
-    pass
+    base_url = create_url_from_request(request)
+    return collection.get_collection_metadata(base_url, is_self=True)
 
 
 # Include other routes

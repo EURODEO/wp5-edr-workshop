@@ -1,11 +1,14 @@
 from datetime import datetime
 from datetime import timezone
 
-from covjson_pydantic.observed_property import ObservedProperty
-from covjson_pydantic.parameter import Parameter
+from covjson_pydantic.observed_property import ObservedProperty as CovJson_ObservedProperty
+from covjson_pydantic.parameter import Parameter as CovJson_Parameter
 from covjson_pydantic.reference_system import ReferenceSystem
 from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
-from covjson_pydantic.unit import Unit
+from covjson_pydantic.unit import Unit as CovJson_Unit
+from edr_pydantic.observed_property import ObservedProperty as Edr_ObservedProperty
+from edr_pydantic.parameter import Parameter as Edr_Parameter
+from edr_pydantic.unit import Unit as Edr_Unit
 from pydantic import AwareDatetime
 from pydantic import TypeAdapter
 
@@ -84,15 +87,29 @@ def get_reference_system() -> list[ReferenceSystemConnectionObject]:
     return [geo_referencing, temporal_referencing]
 
 
-def get_covjson_parameter_from_variable(var: Variable) -> Parameter:
-    parameter = Parameter(
+def get_covjson_parameter_from_variable(var: Variable) -> CovJson_Parameter:
+    parameter = CovJson_Parameter(
         id=var.id,
         label={"en": var.id},
         description={"en": var.long_name},
-        observedProperty=ObservedProperty(
+        observedProperty=CovJson_ObservedProperty(
             id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
             label={"en": var.standard_name},
         ),
-        unit=Unit(label={"en": var.units}),
+        unit=CovJson_Unit(label={"en": var.units}),
+    )
+    return parameter
+
+
+def get_edr_parameter_from_variable(var: Variable) -> Edr_Parameter:
+    parameter = Edr_Parameter(
+        id=var.id,
+        label=var.id,
+        description=var.long_name,
+        observedProperty=Edr_ObservedProperty(
+            id=f"https://vocab.nerc.ac.uk/standard_name/{var.standard_name}",
+            label=var.standard_name,
+        ),
+        unit=Edr_Unit(label=var.units),
     )
     return parameter
