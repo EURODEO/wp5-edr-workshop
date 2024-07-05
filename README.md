@@ -1,8 +1,26 @@
 # RODEO Work Package 5 - EDR Workshop
 
+This workshop was given as part of the EUMETNET project RODEO, in the context of Work Package 5 (Climate data). The
+workshop was given on 2024-06-13 and 2024-06-14 in Helsinki, Finland. See the [slides](WP5-EDR-workshop.pdf) of the
+workshop if you would like to follow along.
+
 ## Getting started
 
+Clone this repository
+```shell
+git clone https://github.com/EURODEO/wp5-edr-workshop.git
+cd wp5-edr-workshop
+```
+
+Go to branch `step_0`  if you would like to follow the workshop steps. The `main` branch contains the full example.
+```shell
+git checkout step_0
+```
+
 It is recommended to use a Python virtual environment.
+```shell
+python3 -m venv venv/
+```
 
 You can install dependencies using `pip3` or `pip-sync` (from the `pip-tools` package)
 ```shell
